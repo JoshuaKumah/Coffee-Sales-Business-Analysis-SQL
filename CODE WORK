@@ -9,6 +9,7 @@ SELECT * FROM product;
 -- Reports and Data Aanlysis
 
 -- Q1: how many people in each city are estimated to consume coffe, given that 25% of the poplulation does?
+- Assumption: 25% of each city's population consumes coffee
 
 SELECT 
 	city_name, 
@@ -18,11 +19,13 @@ order by 2 desc;
 
 SELECT 
 	city_name, 
+	population,
 	round((population * 0.25/1000000), 2) as coffe_consumers_each_city_in_millions 
 FROM city
 order by 2 desc;
 
 -- Q2 what is the total revenue generated from coffee sales across all the cities in the last quarter of 2023
+-- Total company revenue?
 
 select city_name, sum(total)
 from sales
@@ -41,7 +44,7 @@ where year(sale_date) = 2023 and quarter(sale_date) = 4;
 select product.product_name, sales.product_id, count(sales.product_id), sum(sales.total)
 from sales
 join product on product.product_id = sales.product_id
-group by sales.product_id
+group by sales.product_id,product.product_name
 order by 3 desc;
 
 

@@ -1,0 +1,106 @@
+-- Monday coffee analysis
+
+
+SELECT * FROM city;
+SELECT * FROM sales;
+SELECT * FROM customers;
+SELECT * FROM product;
+
+-- Reports and Data Aanlysis
+
+-- Q1: how many people in each city are estimated to consume coffe, given that 25% of the poplulation does?
+
+SELECT 
+	city_name, 
+	population * 0.25 as coffe_consumers_each_city 
+FROM city
+order by 2 desc;
+
+SELECT 
+	city_name, 
+	round((population * 0.25/1000000), 2) as coffe_consumers_each_city_in_millions 
+FROM city
+order by 2 desc;
+
+-- Q2 what is the total revenue generated from coffee sales across all the cities in the last quarter of 2023
+
+select city_name, sum(total)
+from sales
+join customers on customers.customer_id = sales.customer_id
+join  city on city.city_id = customers.city_id
+where year(sale_date) = 2023 and quarter(sale_date) = 4
+group by city_name
+order by 2 desc;
+
+select sum(total)
+from sales
+where year(sale_date) = 2023 and quarter(sale_date) = 4;
+
+-- Q3 sales count for each product, how many units of each coffee product have been sold?
+
+select product.product_name, sales.product_id, count(sales.product_id), sum(sales.total)
+from sales
+join product on product.product_id = sales.product_id
+group by sales.product_id
+order by 3 desc;
+
+
+-- Q4 Average sales amount per city
+-- what is the average sales amount per customer in each city?
+
+select ci.city_name, avg(total) as Avg_Rev
+from sales as s
+join customers as c on c.customer_id = s.customer_id
+join city as ci on ci.city_id = c.city_id
+group by ci.city_name;
+
+select c.customer_name, avg(total) as Avg_Rev
+from sales as s
+join customers as c on c.customer_id = s.customer_id
+group by c.customer_name
+having Avg_Rev > 600;
+
+-- Q5 city population and coffee consumers
+-- provide a list of cities along with their populatoin and estimated coffee consumers
+
+select ci.city_name,ci.population,count(customer_name) as est_coffee_consumers
+from city as ci
+join customers as c on c.city_id = ci.city_id
+group by ci.city_name, ci.population;
+
+
+-- Q6 top selling projects
+-- what are the top 3 selling products in each city based on sales volume?
+
+select
+	p.product_name,p.product_id,count(p.product_id) as sales_volume
+from 
+	product as p
+	join sales as s on s.product_id = p.product_id
+	join customers as c on c.customer_id = s.customer_id
+	join city as ci on ci.city_id = c.city_id
+group by p.product_id,p.product_name
+order by 3 desc
+limit 3;
+
+select
+	p.product_name,p.product_id,count(p.product_id) as sales_volume,
+	row_number() over(order by count(p.product_id)) as ranking
+from 
+	product as p
+	join sales as s on s.product_id = p.product_id
+	join customers as c on c.customer_id = s.customer_id
+	join city as ci on ci.city_id = c.city_id
+group by p.product_id,p.product_name;
+
+select * from (
+select
+	p.product_name,p.product_id,count(p.product_id) as sales_volume,
+	row_number() over(order by count(p.product_id)) as ranking
+from 
+	product as p
+	join sales as s on s.product_id = p.product_id
+	join customers as c on c.customer_id = s.customer_id
+	join city as ci on ci.city_id = c.city_id
+group by p.product_id,p.product_name) as ranking_table
+where ranking <=3;

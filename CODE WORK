@@ -75,6 +75,7 @@ group by ci.city_name, ci.population;
 -- Q6 top selling projects
 -- what are the top 3 selling products in each city based on sales volume?
 
+-- used order by and limit to ascertain top 3 
 select
 	p.product_name,p.product_id,count(p.product_id) as sales_volume
 from 
@@ -86,6 +87,7 @@ group by p.product_id,p.product_name
 order by 3 desc
 limit 3;
 
+-- test drive on rownmuber function
 select
 	p.product_name,p.product_id,count(p.product_id) as sales_volume,
 	row_number() over(order by count(p.product_id)) as ranking
@@ -96,6 +98,7 @@ from
 	join city as ci on ci.city_id = c.city_id
 group by p.product_id,p.product_name;
 
+-- used rownumber function from a temporal table
 select * from (
 select
 	p.product_name,p.product_id,count(p.product_id) as sales_volume,
@@ -107,3 +110,61 @@ from
 	join city as ci on ci.city_id = c.city_id
 group by p.product_id,p.product_name) as ranking_table
 where ranking <=3;
+
+-- Q7 customer segregation by city
+-- how many unique customers are there in each city who have purchased coffee products?
+
+select ci.city_name, count(c.customer_name) as num_of_uni_cus
+from product as p
+join sales as s on s.product_id = p.product_id
+join customers as c on c.customer_id = s.customer_id
+join city as ci on ci.city_id = c.city_id
+group by ci.city_name
+order by 2 desc;
+
+-- Q8. average sales vs Rent
+-- find each city and their average sale per customer and avg rent per customer
+
+Select ci.city_name, c.customer_name, avg(estimated_rent),avg(total)
+from city as ci
+join customers as c on c.city_id = ci.city_id
+join sales as s on s.customer_id = s.customer_id
+group by ci.city_name, c.customer_name;
+
+-- Q9. Monthly sales growth
+-- sales growth rate: cal the percentage growth(or decline) in sales over different time periods (monthly)
+
+-- test drive mode 
+select sale_date, total, month(sale_date) as month
+from sales
+group by sale_date,total
+order by 1;
+
+select sale_date, count(*), sum(total) 
+from sales
+group by sale_date
+order by 1;
+
+select date_format(sale_date, '%Y-%m'), count(*), sum(total) 
+from sales
+group by sale_date
+order by 1;
+
+-- setting the year and month in isolation to know what happened in specifically. 
+select year(sale_date) as yr, month(sale_date) as mm, count(*), sum(total)  
+from sales
+group by yr,mm
+order by yr,mm;
+
+-- using CTE to ascertain the growht change 
+with monthly as (
+select year(sale_date) as yr, month(sale_date) as mm, count(*), sum(total) as month_total
+from sales
+group by yr,mm
+)
+select yr, mm, month_total, 
+lag(month_total) over(order by yr,mm) as prev_month_total,
+round((month_total - lag(month_total) over(order by yr,mm))/lag(month_total) over(order by yr,mm) * 100,2) 
+as growth_pct
+from monthly
+order by yr,mm;

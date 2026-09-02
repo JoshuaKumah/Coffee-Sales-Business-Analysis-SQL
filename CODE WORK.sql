@@ -9,7 +9,7 @@ SELECT * FROM product;
 -- Reports and Data Aanlysis
 
 -- Q1: how many people in each city are estimated to consume coffe, given that 25% of the poplulation does?
-- Assumption: 25% of each city's population consumes coffee
+-- Assumption: 25% of each city's population consumes coffee
 
 SELECT 
 	city_name, 

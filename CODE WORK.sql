@@ -1,170 +1,318 @@
--- Monday coffee analysis
+-- Monday Coffee Sales Analysis
 
 
-SELECT * FROM city;
-SELECT * FROM sales;
-SELECT * FROM customers;
-SELECT * FROM product;
+SELECT *
+FROM city;
 
--- Reports and Data Aanlysis
+SELECT *
+FROM sales;
 
--- Q1: how many people in each city are estimated to consume coffe, given that 25% of the poplulation does?
--- Assumption: 25% of each city's population consumes coffee
+SELECT *
+FROM customers;
 
-SELECT 
-	city_name, 
-	population * 0.25 as coffe_consumers_each_city 
+SELECT *
+FROM product;
+
+
+-- Reports and Data Analysis
+
+
+-- Q1: How many people in each city are estimated to consume coffee,
+-- given that 25% of the population does?
+-- Assumption: 25% of each city's population consumes coffee.
+
+SELECT
+    city_name,
+    population * 0.25 AS coffee_consumers_each_city
 FROM city
-order by 2 desc;
+ORDER BY 2 DESC;
 
-SELECT 
-	city_name, 
-	population,
-	round((population * 0.25/1000000), 2) as coffe_consumers_each_city_in_millions 
+
+SELECT
+    city_name,
+    population,
+    ROUND((population * 0.25 / 1000000), 2)
+        AS coffee_consumers_each_city_in_millions
 FROM city
-order by 2 desc;
-
--- Q2 what is the total revenue generated from coffee sales across all the cities in the last quarter of 2023
--- Total company revenue?
-
-select city_name, sum(total)
-from sales
-join customers on customers.customer_id = sales.customer_id
-join  city on city.city_id = customers.city_id
-where year(sale_date) = 2023 and quarter(sale_date) = 4
-group by city_name
-order by 2 desc;
-
-select sum(total)
-from sales
-where year(sale_date) = 2023 and quarter(sale_date) = 4;
-
--- Q3 sales count for each product, how many units of each coffee product have been sold?
-
-select product.product_name, sales.product_id, count(sales.product_id), sum(sales.total)
-from sales
-join product on product.product_id = sales.product_id
-group by sales.product_id,product.product_name
-order by 3 desc;
+ORDER BY 2 DESC;
 
 
--- Q4 Average sales amount per city
--- what is the average sales amount per customer in each city?
+-- Q2: What is the total revenue generated from coffee sales
+-- across all cities in the last quarter of 2023?
 
-select ci.city_name, avg(total) as Avg_Rev
-from sales as s
-join customers as c on c.customer_id = s.customer_id
-join city as ci on ci.city_id = c.city_id
-group by ci.city_name;
-
-select c.customer_name, avg(total) as Avg_Rev
-from sales as s
-join customers as c on c.customer_id = s.customer_id
-group by c.customer_name
-having Avg_Rev > 600;
-
--- Q5 city population and coffee consumers
--- provide a list of cities along with their populatoin and estimated coffee consumers
-
-select ci.city_name,ci.population,count(customer_name) as est_coffee_consumers
-from city as ci
-join customers as c on c.city_id = ci.city_id
-group by ci.city_name, ci.population;
+SELECT
+    ci.city_name,
+    SUM(s.total) AS total_revenue
+FROM sales AS s
+JOIN customers AS c
+    ON c.customer_id = s.customer_id
+JOIN city AS ci
+    ON ci.city_id = c.city_id
+WHERE YEAR(s.sale_date) = 2023
+    AND QUARTER(s.sale_date) = 4
+GROUP BY ci.city_name
+ORDER BY 2 DESC;
 
 
--- Q6 top selling projects
--- what are the top 3 selling products in each city based on sales volume?
+-- Total company revenue.
 
--- used order by and limit to ascertain top 3 
-select
-	p.product_name,p.product_id,count(p.product_id) as sales_volume
-from 
-	product as p
-	join sales as s on s.product_id = p.product_id
-	join customers as c on c.customer_id = s.customer_id
-	join city as ci on ci.city_id = c.city_id
-group by p.product_id,p.product_name
-order by 3 desc
-limit 3;
+SELECT
+    SUM(total) AS total_company_revenue
+FROM sales
+WHERE YEAR(sale_date) = 2023
+    AND QUARTER(sale_date) = 4;
 
--- test drive on rownmuber function
-select
-	p.product_name,p.product_id,count(p.product_id) as sales_volume,
-	row_number() over(order by count(p.product_id)) as ranking
-from 
-	product as p
-	join sales as s on s.product_id = p.product_id
-	join customers as c on c.customer_id = s.customer_id
-	join city as ci on ci.city_id = c.city_id
-group by p.product_id,p.product_name;
 
--- used rownumber function from a temporal table
-select * from (
-select
-	p.product_name,p.product_id,count(p.product_id) as sales_volume,
-	row_number() over(order by count(p.product_id)) as ranking
-from 
-	product as p
-	join sales as s on s.product_id = p.product_id
-	join customers as c on c.customer_id = s.customer_id
-	join city as ci on ci.city_id = c.city_id
-group by p.product_id,p.product_name) as ranking_table
-where ranking <=3;
+-- Q3: Sales count for each product.
+-- How many units of each coffee product have been sold?
 
--- Q7 customer segregation by city
--- how many unique customers are there in each city who have purchased coffee products?
+SELECT
+    p.product_name,
+    s.product_id,
+    COUNT(s.product_id) AS sales_count,
+    SUM(s.total) AS total_sales
+FROM sales AS s
+JOIN product AS p
+    ON p.product_id = s.product_id
+GROUP BY
+    s.product_id,
+    p.product_name
+ORDER BY 3 DESC;
 
-select ci.city_name, count(c.customer_name) as num_of_uni_cus
-from product as p
-join sales as s on s.product_id = p.product_id
-join customers as c on c.customer_id = s.customer_id
-join city as ci on ci.city_id = c.city_id
-group by ci.city_name
-order by 2 desc;
 
--- Q8. average sales vs Rent
--- find each city and their average sale per customer and avg rent per customer
+-- Q4: Average sales amount per city.
+-- What is the average sales amount per customer in each city?
 
-Select ci.city_name, c.customer_name, avg(estimated_rent),avg(total)
-from city as ci
-join customers as c on c.city_id = ci.city_id
-join sales as s on s.customer_id = s.customer_id
-group by ci.city_name, c.customer_name;
+SELECT
+    ci.city_name,
+    AVG(s.total) AS avg_revenue
+FROM sales AS s
+JOIN customers AS c
+    ON c.customer_id = s.customer_id
+JOIN city AS ci
+    ON ci.city_id = c.city_id
+GROUP BY ci.city_name;
 
--- Q9. Monthly sales growth
--- sales growth rate: cal the percentage growth(or decline) in sales over different time periods (monthly)
 
--- test drive mode 
-select sale_date, total, month(sale_date) as month
-from sales
-group by sale_date,total
-order by 1;
+SELECT
+    c.customer_name,
+    AVG(s.total) AS avg_revenue
+FROM sales AS s
+JOIN customers AS c
+    ON c.customer_id = s.customer_id
+GROUP BY c.customer_name
+HAVING avg_revenue > 600;
 
-select sale_date, count(*), sum(total) 
-from sales
-group by sale_date
-order by 1;
 
-select date_format(sale_date, '%Y-%m'), count(*), sum(total) 
-from sales
-group by sale_date
-order by 1;
+-- Q5: City population and coffee consumers.
+-- Provide a list of cities along with their population
+-- and estimated coffee consumers.
 
--- setting the year and month in isolation to know what happened in specifically. 
-select year(sale_date) as yr, month(sale_date) as mm, count(*), sum(total)  
-from sales
-group by yr,mm
-order by yr,mm;
+SELECT
+    ci.city_name,
+    ci.population,
+    COUNT(c.customer_name) AS estimated_coffee_consumers
+FROM city AS ci
+JOIN customers AS c
+    ON c.city_id = ci.city_id
+GROUP BY
+    ci.city_name,
+    ci.population;
 
--- using CTE to ascertain the growht change 
-with monthly as (
-select year(sale_date) as yr, month(sale_date) as mm, count(*), sum(total) as month_total
-from sales
-group by yr,mm
+
+-- Q6: Top-selling products.
+-- What are the top three selling products in each city
+-- based on sales volume?
+
+-- Using ORDER BY and LIMIT to identify the top three products.
+
+SELECT
+    p.product_name,
+    p.product_id,
+    COUNT(p.product_id) AS sales_volume
+FROM product AS p
+JOIN sales AS s
+    ON s.product_id = p.product_id
+JOIN customers AS c
+    ON c.customer_id = s.customer_id
+JOIN city AS ci
+    ON ci.city_id = c.city_id
+GROUP BY
+    p.product_id,
+    p.product_name
+ORDER BY 3 DESC
+LIMIT 3;
+
+
+-- Testing the ROW_NUMBER() function.
+
+SELECT
+    p.product_name,
+    p.product_id,
+    COUNT(p.product_id) AS sales_volume,
+    ROW_NUMBER() OVER (
+        ORDER BY COUNT(p.product_id)
+    ) AS ranking
+FROM product AS p
+JOIN sales AS s
+    ON s.product_id = p.product_id
+JOIN customers AS c
+    ON c.customer_id = s.customer_id
+JOIN city AS ci
+    ON ci.city_id = c.city_id
+GROUP BY
+    p.product_id,
+    p.product_name;
+
+
+-- Using the ROW_NUMBER() function with a derived table.
+
+SELECT *
+FROM (
+    SELECT
+        p.product_name,
+        p.product_id,
+        COUNT(p.product_id) AS sales_volume,
+        ROW_NUMBER() OVER (
+            ORDER BY COUNT(p.product_id)
+        ) AS ranking
+    FROM product AS p
+    JOIN sales AS s
+        ON s.product_id = p.product_id
+    JOIN customers AS c
+        ON c.customer_id = s.customer_id
+    JOIN city AS ci
+        ON ci.city_id = c.city_id
+    GROUP BY
+        p.product_id,
+        p.product_name
+) AS ranking_table
+WHERE ranking <= 3;
+
+
+-- Q7: Customer segmentation by city.
+-- How many unique customers are there in each city
+-- who have purchased coffee products?
+
+SELECT
+    ci.city_name,
+    COUNT(c.customer_name) AS number_of_unique_customers
+FROM product AS p
+JOIN sales AS s
+    ON s.product_id = p.product_id
+JOIN customers AS c
+    ON c.customer_id = s.customer_id
+JOIN city AS ci
+    ON ci.city_id = c.city_id
+GROUP BY ci.city_name
+ORDER BY 2 DESC;
+
+
+-- Q8: Average sales versus rent.
+-- Find each city and its average sale per customer
+-- and average rent per customer.
+
+SELECT
+    ci.city_name,
+    c.customer_name,
+    AVG(estimated_rent) AS avg_estimated_rent,
+    AVG(total) AS avg_sales_amount
+FROM city AS ci
+JOIN customers AS c
+    ON c.city_id = ci.city_id
+JOIN sales AS s
+    ON s.customer_id = s.customer_id
+GROUP BY
+    ci.city_name,
+    c.customer_name;
+
+
+-- Q9: Monthly sales growth.
+-- Calculate the percentage growth or decline in sales
+-- over different monthly periods.
+
+-- Test-drive mode.
+
+SELECT
+    sale_date,
+    total,
+    MONTH(sale_date) AS month
+FROM sales
+GROUP BY
+    sale_date,
+    total
+ORDER BY 1;
+
+
+SELECT
+    sale_date,
+    COUNT(*) AS sales_count,
+    SUM(total) AS total_sales
+FROM sales
+GROUP BY sale_date
+ORDER BY 1;
+
+
+SELECT
+    DATE_FORMAT(sale_date, '%Y-%m') AS year_month,
+    COUNT(*) AS sales_count,
+    SUM(total) AS total_sales
+FROM sales
+GROUP BY sale_date
+ORDER BY 1;
+
+
+-- Separating the year and month to understand
+-- what happened during each specific period.
+
+SELECT
+    YEAR(sale_date) AS sale_year,
+    MONTH(sale_date) AS sale_month,
+    COUNT(*) AS sales_count,
+    SUM(total) AS total_sales
+FROM sales
+GROUP BY
+    sale_year,
+    sale_month
+ORDER BY
+    sale_year,
+    sale_month;
+
+
+-- Using a CTE to calculate the monthly growth rate.
+
+WITH monthly AS (
+    SELECT
+        YEAR(sale_date) AS sale_year,
+        MONTH(sale_date) AS sale_month,
+        COUNT(*) AS sales_count,
+        SUM(total) AS month_total
+    FROM sales
+    GROUP BY
+        sale_year,
+        sale_month
 )
-select yr, mm, month_total, 
-lag(month_total) over(order by yr,mm) as prev_month_total,
-round((month_total - lag(month_total) over(order by yr,mm))/lag(month_total) over(order by yr,mm) * 100,2) 
-as growth_pct
-from monthly
-order by yr,mm;
+
+SELECT
+    sale_year,
+    sale_month,
+    month_total,
+    LAG(month_total) OVER (
+        ORDER BY sale_year, sale_month
+    ) AS previous_month_total,
+    ROUND(
+        (
+            month_total
+            - LAG(month_total) OVER (
+                ORDER BY sale_year, sale_month
+            )
+        )
+        / LAG(month_total) OVER (
+            ORDER BY sale_year, sale_month
+        ) * 100,
+        2
+    ) AS growth_percentage
+FROM monthly
+ORDER BY
+    sale_year,
+    sale_month;
